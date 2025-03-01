@@ -7,52 +7,63 @@ using System.Net;
 using System.IO;
 using System.Diagnostics;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace HttpServerWithPhp
 {
     internal class HttpServer
     {
+        public int Port { get; set; }
+        public string UrlPrefix { get; set; }
+        private HttpListener _listener;
+        private IRequestHandler _requestHandler;
+
         private ConcurrentDictionary<Task, byte> _runningTasks;
 
-        public int Port { get; set; }
-        public string UriPrefix { get; set; }
-        private HttpListener _listener;
-
         private CancellationTokenSource _cts;
-        private bool _isRunning;
 
-        public HttpServer(int port, string urlPrefix, string iPAddress, CancellationToken token)
+        public HttpServer(int port, string urlPrefix, string iPAddress, IRequestHandler requestHandler)
         {
             Port = port;
-            UriPrefix = urlPrefix;
+            UrlPrefix = urlPrefix;
             _listener = new HttpListener();
-            _runningTasks = new ConcurrentDictionary<Task, byte>();
             _cts = new CancellationTokenSource();
-            _isRunning = false;
+            _requestHandler = requestHandler;
+            _runningTasks = new ConcurrentDictionary<Task, byte>();
         }
 
-        public async void Start()
+        public async Task Start()
         {
-            if (_isRunning) { return; }
             
-            while (_isRunning)
+            
+            try
             {
-                try
+                _listener.Prefixes.Add(UrlPrefix + Port.ToString() + "/");
+                _listener.Start();
+
+
+                while (!_cts.IsCancellationRequested)
                 {
-                    _listener.Prefixes.Add(UriPrefix + Port.ToString() + "/");
-                    _listener.Start();
-                    _isRunning = true;
                     var context = await _listener.GetContextAsync();
 
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    _isRunning = false;
-                    _listener.Stop();
-                    return;
+                    Console.WriteLine("Request received");
+
+                    var task = Task.Run(() => _requestHandler.HandleRequest(context, _cts.Token));
+                    
+                    //Log task in dictionary
+                    _runningTasks[task] = 0;
+                    //Remove once complete
+                    task.ContinueWith(t => _runningTasks.TryRemove(t, out _));
                 }
             }
+            catch (Exception ex) when (!_cts.IsCancellationRequested)
+            {
+                Console.WriteLine(ex.Message);
+                _cts.Cancel();
+                _listener.Stop();
+                return;
+            }
+            
             
 
 
@@ -61,6 +72,10 @@ namespace HttpServerWithPhp
         {
             _cts.Cancel();
             _listener.Stop();
+
+            Task.WaitAll(_runningTasks.Keys.ToArray<Task>(), 5000);
+            Console.WriteLine("All running tasks completed.");
         }
+
     }
 }
