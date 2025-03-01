@@ -10,9 +10,14 @@ namespace HttpServerWithPhp
     internal class BasicRequestHandler : IRequestHandler
     {
 
-        public BasicRequestHandler()
-        {
+        private string _documentRoot;
+        private PhpCgiHandler _phpHandler;
 
+
+        public BasicRequestHandler(string rootDir, PhpCgiHandler phpHandler)
+        {
+            _documentRoot = rootDir;
+            _phpHandler = phpHandler;
         }
 
         public void HandleRequest(HttpListenerContext context, CancellationToken cancellationToken)
@@ -20,16 +25,26 @@ namespace HttpServerWithPhp
 
             var response = context.Response;
 
-            string content = "<!DOCTYPE html>\n<html>\n<head>\n<title>Test12</title></head><body>Mic check 1-2</body></html>";
+            var (headers, body) = _phpHandler.ProcessPHP(context.Request, "cgi_debug.php", _documentRoot);
 
-            byte[] contentBytes = Encoding.UTF8.GetBytes(content);
+            foreach (var item in headers)
+            {
+                response.AddHeader(item.Key, item.Value);
+            }
 
 
-            response.StatusCode = (int)HttpStatusCode.OK;
-            response.ContentType = "html";
-            response.OutputStream.Write(contentBytes, 0, contentBytes.Length);
-            response.OutputStream.Close();
+            byte[] contentBytes = Encoding.UTF8.GetBytes(body);
 
+            try
+            {
+                response.OutputStream.Write(contentBytes, 0, contentBytes.Length);
+                response.OutputStream.Close();
+            }
+            catch (ObjectDisposedException e)
+            {
+                //Server was shutdown
+                return;
+            }
         }
     }
 }
