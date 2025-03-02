@@ -84,9 +84,6 @@ namespace HttpServerWithPhp.RequestHandling
                 {
                     Console.WriteLine($"PHP CGI ERROR: {error}");
                 }
-
-                Console.WriteLine(output);
-
                 return ParsePhpOutput(output);
             }
         }
