@@ -1,0 +1,23 @@
+{
+  "ServerSettings": {
+    "Host": "http://localhost:",
+    "Port": 13000
+  },
+  "PhpSettings": {
+    "PhpCgiPath": "C:\\php\\php-cgi.exe",
+    "DocumentRoot": "htdocs"
+  },
+  "Routing": {
+    "Enabled": false,
+    "Routes": [
+      {
+        "Route": "/",
+        "Resource": "index.html"
+      },
+      {
+        "Route": "/debug",
+        "Resource": "cgi_debug.php"
+      }
+    ]    
+  }
+}

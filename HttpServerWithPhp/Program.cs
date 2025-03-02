@@ -1,6 +1,8 @@
 ﻿
 
 using HttpServerWithPhp;
+using HttpServerWithPhp.RequestHandling;
+using HttpServerWithPhp.Config;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -10,29 +12,41 @@ class Program
 
     static void Main(string[] args)
     {
-
+        
         //Soultion-level folder
         string solutionDir = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName;
 
-        //Document root
-        string relativeDocumentRoot = Path.Combine(solutionDir, "htdocs");
-        
-        //Php exe
-        string phpCgiExe = "C:\\php\\php-cgi.exe";
+        string configPath = Path.Combine(solutionDir, "HttpServerWithPhp\\config.json");
+
+        Config config = null;
+
+        //Load config
+        try
+        {
+            config = Config.LoadConfig(configPath);
+        }
+        catch(Exception e)
+        {
+            Console.WriteLine(e.Message);
+            return;
+        }
+
+        //Convert document root to absolute
+        string absoluteDocumentRoot = Path.Combine(solutionDir, config.PhpSettings.DocumentRoot);
 
 
-        //Intercept ctrl+c
+        var phpHandler = new PhpCgiHandler(config.PhpSettings.PhpCgiPath);
+        var clientHandler = new BasicRequestHandler(absoluteDocumentRoot, phpHandler, config.Routing.RouteDictionary, config.Routing.Enabled);
+
+        var server = new HttpServer(config.ServerSettings.Port, config.ServerSettings.Host, clientHandler);
+
+
+        //Intercept ctrl+c -> use it to shutdown server & running tasks gracefully.
         Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
         {
             e.Cancel = true;
             Program._keepRunning = false;
         };
-
-
-        PhpCgiHandler phpHandler = new PhpCgiHandler(phpCgiExe);
-        BasicRequestHandler handler = new BasicRequestHandler(relativeDocumentRoot, phpHandler);
-
-        var server = new HttpServer(13005, "http://localhost:", "127.0.0.1", handler);
 
         server.Start();
         

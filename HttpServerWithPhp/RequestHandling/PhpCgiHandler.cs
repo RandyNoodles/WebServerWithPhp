@@ -6,7 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HttpServerWithPhp
+namespace HttpServerWithPhp.RequestHandling
 {
 
     internal class PhpCgiHandler

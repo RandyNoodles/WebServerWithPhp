@@ -8,6 +8,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using HttpServerWithPhp.RequestHandling;
 
 namespace HttpServerWithPhp
 {
@@ -22,7 +23,7 @@ namespace HttpServerWithPhp
 
         private CancellationTokenSource _cts;
 
-        public HttpServer(int port, string urlPrefix, string iPAddress, IRequestHandler requestHandler)
+        public HttpServer(int port, string urlPrefix, IRequestHandler requestHandler)
         {
             Port = port;
             UrlPrefix = urlPrefix;
@@ -33,20 +34,17 @@ namespace HttpServerWithPhp
         }
 
         public async Task Start()
-        {
-            
-            
+        {         
             try
             {
+
                 _listener.Prefixes.Add(UrlPrefix + Port.ToString() + "/");
                 _listener.Start();
-
+                Console.WriteLine($"Server started on {UrlPrefix}:{Port.ToString()}/");
 
                 while (!_cts.IsCancellationRequested)
                 {
                     var context = await _listener.GetContextAsync();
-
-                    Console.WriteLine("Request received");
 
                     var task = Task.Run(() => _requestHandler.HandleRequest(context, _cts.Token));
                     
@@ -59,13 +57,11 @@ namespace HttpServerWithPhp
             catch (Exception ex) when (!_cts.IsCancellationRequested)
             {
                 Console.WriteLine(ex.Message);
+                Console.WriteLine("Server stopping.");
                 _cts.Cancel();
                 _listener.Stop();
                 return;
             }
-            
-            
-
 
         }
         public void Stop()
