@@ -3,6 +3,9 @@
 ## Overview
 This project is a lightweight HTTP server designed to improve my understanding of HTTP, server-side execution, and routing. It supports **server-side PHP execution via CGI**, **customizable routing**, and **static file serving**.
 
+## cgi_debug.php Results:
+![CgiDebug2](https://github.com/user-attachments/assets/844b7255-823b-4aff-b580-851c9b1b3cf4)
+
 ## Features
 - **Server-side PHP script execution** via CGI
 - **User-defined routing** via `config.json`
